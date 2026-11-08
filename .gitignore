@@ -1,0 +1,14 @@
+# 공개 미러(web/ 만)에서도 쓰이도록 web 폴더 기준 ignore. 원본 저장소 루트 .gitignore 와 같은 규칙.
+node_modules/
+.env
+.env.*
+!.env.example
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+test-results/
+playwright-report/
+.vercel/
+.DS_Store
+*.log
