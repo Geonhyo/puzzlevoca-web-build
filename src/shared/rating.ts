@@ -110,3 +110,27 @@ export const initialRating = (): RatingState => ({ tier: null, div: 3, lp: 0, ex
 
 /** 정렬된 점수 목록에서의 순위 = 나보다 점수가 높은 사람 수 + 1 */
 export const rankOf = (score: number, scores: number[]) => scores.filter(s => s > score).length + 1;
+
+// ─── 휴식 감소 / 시즌 (디자인 문서 '운영 규칙') ───
+// 문서에 '수치 미정'으로 남은 값은 개발 기본값이다. 바꾸려면 여기만 고치면 된다.
+
+/** 쉬면 LP 가 줄어드는 티어 (다이아 이상) */
+export const DECAY_TIERS: Tier[] = ['diamond', 'master'];
+/** 안 푼 날 하루당 줄어드는 LP. 0 아래로는 내려가지 않고, 휴식으로 강등되지는 않는다. */
+export const DECAY_LP = 5;
+/** 시즌 길이 (개월) */
+export const SEASON_MONTHS = 3;
+
+/** 그날 안 풀었을 때의 변화. 감소 대상이 아니거나 이미 0이면 null */
+export function decayDay(r: RatingState): { next: RatingState; delta: number } | null {
+  if (!r.tier || !DECAY_TIERS.includes(r.tier) || r.lp <= 0) return null;
+  const lp = Math.max(0, r.lp - DECAY_LP);
+  return { next: { ...r, lp }, delta: lp - r.lp };
+}
+
+/** 시즌이 끝나면 한 티어 아래로 (단계는 그대로, LP 0). 마스터 → 다이아 1, 브론즈는 그대로. 배치고사 중이면 변화 없음. */
+export function softReset(r: RatingState): RatingState {
+  if (!r.tier) return r;
+  if (r.tier === 'master') return { ...r, tier: 'diamond', div: 1, lp: 0 };
+  return { ...r, tier: TIERS[Math.max(0, tierIdx(r.tier) - 1)], lp: 0 };
+}

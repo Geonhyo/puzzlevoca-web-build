@@ -9,6 +9,10 @@ export interface Me {
   rating: RatingState;
   stats: { streakDays: number; learnedWords: number; playedCount: number; avgScore: number | null; bestScore: number | null; week: boolean[] };
   today: { date: string; puzzleId: number | null; play: PlaySummary | null; position: Position | null };
+  /** 현재 시즌 (3개월) */
+  season: { no: number; startsOn: string; endsOn: string } | null;
+  /** 지난 시즌 뱃지 (시즌이 끝날 때의 티어). 화면 표시는 디자인 확정 후 */
+  badges: { seasonNo: number; tier: Tier; div: number }[];
 }
 export interface RankRow { rank: number; loginId: string; avatar: number; score: number; elapsedSec: number; tier: Tier | null; div: number; isMe: boolean }
 export interface Ranking { puzzle: { id: number; no: number; date: string }; total: number; top: RankRow[]; me: RankRow | null; position: Position | null }

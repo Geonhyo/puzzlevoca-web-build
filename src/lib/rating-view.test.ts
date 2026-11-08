@@ -7,6 +7,8 @@ const me = (rating: Me['rating'], pct: number | null): Me => ({
   user: { loginId: 'a', email: null, notifyEnabled: false, avatar: 0, createdAt: '' },
   rating,
   stats: { streakDays: 0, learnedWords: 0, playedCount: 0, avgScore: null, bestScore: null, week: [] },
+  season: null,
+  badges: [],
   today: { date: '2026-11-08', puzzleId: 1, play: pct == null ? null : ({ total: 1 } as Me['today']['play']), position: pct == null ? null : { rank: 1, total: 10, pct } },
 });
 
