@@ -338,7 +338,9 @@ function ShareSheet() {
     });
     return () => { alive = false; };
   }, [result, board, puzzle, me?.user.loginId]);
-  const name = `puzzlevoca-${puzzle?.no ?? ''}.png`;
+  // 파일명: puzzlevoca_{아이디}_{YYMMDD}.png (비로그인은 아이디 없이), 날짜는 퍼즐 날짜
+  const yymmdd = (puzzle?.date ?? '').replace(/-/g, '').slice(2);
+  const name = ['puzzlevoca', me?.user.loginId, yymmdd].filter(Boolean).join('_') + '.png';
   const blob = () => new Promise<Blob>((res, rej) => cv.current ? cv.current.toBlob(b => (b ? res(b) : rej(new Error('blob'))), 'image/png') : rej(new Error('no canvas')));
   const save = () => {
     if (!url) return;

@@ -228,6 +228,9 @@ a.btn.line { color: var(--color-ink); }
   .s-back { display: none; }
   .s-result { row-gap: 20px; }
   .s-result .s-col { gap: 24px; }
+  /* 프로필은 PC 에서도 태블릿처럼 한 줄: 최대 712px(좌우 56px 여백 → 내용 600px), 가운데 */
+  .s-wrap.s-profile { max-width: 712px; display: flex; flex-direction: column; align-items: stretch; gap: 14px; }
+  .s-profile .s-col { display: contents; }
   .s-resTitle { font-size: 22px; margin: 0 2px; }
 }
 

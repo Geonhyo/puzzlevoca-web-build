@@ -119,6 +119,14 @@ test('비로그인으로 푼 기록이 가입하면 제출되고 랭킹·배치�
   await expect(page.locator('.s-tbar')).toContainText('배치고사 1/3일');
   await expect(page.locator('.s-tbar')).toContainText('예상 티어');
   await shot(page, `${tag}-08-result-logged`);
+  // 로그인 상태의 결과 카드 파일명: puzzlevoca_{아이디}_{YYMMDD}.png
+  await page.getByRole('button', { name: '친구들에게 공유하기' }).click();
+  const shareSheet = page.getByRole('dialog', { name: '결과 카드 공유' });
+  await expect(shareSheet.locator('img.s-shareImg')).toHaveAttribute('src', /^data:image\/png/);
+  const dl = page.waitForEvent('download');
+  await shareSheet.getByRole('button', { name: /^이미지(로)? 저장$/ }).click();
+  expect((await dl).suggestedFilename()).toMatch(new RegExp(`^puzzlevoca_${id}_\\d{6}\\.png$`));
+  await page.keyboard.press('Escape');
 
   await page.goto('/');
   await expect(page.locator('.s-stTop')).toContainText('1일 연속');
@@ -313,16 +321,16 @@ for (const mode of ['share', 'noshare'] as const) {
       const read = () => page.evaluate(() => (window as unknown as { __shared: { name: string; type: string; text?: string }[] }).__shared);
       await expect.poll(async () => (await read()).length).toBe(1);
       const shared = await read();
-      expect(shared[0]).toMatchObject({ type: 'image/png', name: expect.stringMatching(/^puzzlevoca-\d+\.png$/) });
+      expect(shared[0]).toMatchObject({ type: 'image/png', name: expect.stringMatching(/^puzzlevoca_\d{6}\.png$/) });
       const dl = page.waitForEvent('download');
       await sheet.getByRole('button', { name: '이미지로 저장' }).click();
-      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca-\d+\.png$/);
+      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca_\d{6}\.png$/);
     } else {
       await expect(sheet.getByRole('button', { name: '카드 공유하기' })).toHaveCount(0);
       await expect(sheet.getByRole('button', { name: '이미지로 저장' })).toHaveCount(0);
       const dl = page.waitForEvent('download');
       await sheet.getByRole('button', { name: '이미지 저장' }).click();
-      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca-\d+\.png$/);
+      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca_\d{6}\.png$/);
       await expect(sheet.getByRole('button', { name: '저장했어요' })).toBeVisible();
     }
   });

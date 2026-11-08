@@ -36,7 +36,7 @@ export function ProfileView() {
             <div><span className="s-label">최고 점수</span><b>{st.bestScore != null ? st.bestScore.toLocaleString() : '-'}</b></div>
           </section>
         </div>
-        <div className="s-col" style={{ paddingTop: 2 }}>
+        <div className="s-col">
           <section className="s-card s-settings">
             <button type="button" className="s-set" onClick={() => openSheet('email')}>
               <span>이메일<small>로그인, 비밀번호 찾기, 알림에 사용돼요</small></span>
