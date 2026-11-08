@@ -87,7 +87,7 @@ export function Countdown({ className = 's-count' }: { className?: string }) {
 
 export function NotifyButton() {
   const { me, openSheet, updateMe } = useApp();
-  if (me?.user.notifyEnabled) return <span className="btn sm line s-auto" style={{ gap: 6, color: 'var(--color-brand-strong)' }}><IconCheck />알림 켜짐</span>;
+  if (me?.user.notifyEnabled) return <span className="btn sm line s-auto" style={{ gap: 6, color: 'var(--color-brand-dark)' }}><IconCheck />알림 켜짐</span>;
   const on = () => {
     if (!me) openSheet('login', 'notify');
     else if (me.user.email) updateMe({ notifyEnabled: true }).catch(() => {});

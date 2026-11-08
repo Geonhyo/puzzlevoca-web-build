@@ -16,16 +16,17 @@ function Shell({ label, children }: { label: string; children: React.ReactNode }
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
-    const f = ref.current?.querySelector<HTMLElement>('input, .btn');
-    f?.focus();
+    const f = ref.current?.querySelector<HTMLElement>('input:not([type=checkbox])') ?? ref.current;
+    f?.focus({ preventScroll: true });
+    document.documentElement.classList.add('s-lock');
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeSheet(); };
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('keydown', onKey); prev?.focus?.(); };
+    return () => { document.removeEventListener('keydown', onKey); document.documentElement.classList.remove('s-lock'); prev?.focus?.({ preventScroll: true }); };
   }, [closeSheet]);
   return (
     <div className="s-sheetOv">
       <div className="s-dim" onClick={closeSheet} />
-      <div className="s-sheet" role="dialog" aria-modal="true" aria-label={label} ref={ref}>
+      <div className="s-sheet" role="dialog" aria-modal="true" aria-label={label} ref={ref} tabIndex={-1}>
         <div className="s-grab" />
         <button type="button" className="s-x" aria-label="닫기" onClick={closeSheet}><IconX /></button>
         {children}
@@ -40,10 +41,10 @@ const Head = ({ title, note, center }: { title: string; note?: string; center?: 
 
 function Field(props: {
   id: string; label: string; type: string; value: string; onChange: (v: string) => void; placeholder?: string; autoComplete: string;
-  aside?: React.ReactNode; inputMode?: 'email' | 'text'; onBlur?: () => void;
+  aside?: React.ReactNode; inputMode?: 'email' | 'text'; onBlur?: () => void; noEye?: boolean; below?: React.ReactNode;
 }) {
   const [show, setShow] = useState(false);
-  const pw = props.type === 'password';
+  const pw = props.type === 'password' && !props.noEye;
   return (
     <div className="s-field">
       <div className="s-fieldHead"><label htmlFor={props.id}>{props.label}</label>{props.aside}</div>
@@ -56,6 +57,7 @@ function Field(props: {
           </button>
         ) : null}
       </div>
+      {props.below}
     </div>
   );
 }
@@ -165,11 +167,10 @@ function SignupSheet({ reason }: { reason?: string }) {
       <form className="s-form" onSubmit={submit} noValidate>
         <Head title="새 계정 만들기" note="기록이 매일 쌓이고 순위에도 올라가요." />
         <Field id="semail" label="이메일" type="email" value={email} onChange={setEmail} placeholder="name@example.com" autoComplete="email" inputMode="email" />
-        <Field id="sid" label="아이디" type="text" value={loginId} onChange={setLoginId} placeholder="영소문자, 숫자, _ 4~16자" autoComplete="username" />
-        {hint}
-        {!id && suggestion ? (
-          <div className="s-suggest">추천 <button type="button" className="s-chip" onClick={() => setLoginId(suggestion)}>{suggestion}</button></div>
-        ) : null}
+        <Field id="sid" label="아이디" type="text" value={loginId} onChange={setLoginId} placeholder="영소문자, 숫자, _ 4~16자" autoComplete="username"
+          below={<>{hint}{!id && suggestion ? (
+            <div className="s-suggest"><span>추천</span><button type="button" className="s-chip" onClick={() => setLoginId(suggestion)}>{suggestion}</button></div>
+          ) : null}</>} />
         <Field id="spw" label="비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn" disabled={busy}>가입하기</button>
@@ -194,7 +195,7 @@ function ResetSheet({ prefill }: { prefill?: string }) {
   if (sentTo) {
     return (
       <Shell label="임시 비밀번호를 보냈어요">
-        <div className="s-bell"><IconMail size={24} /></div>
+        <div className="s-bell"><IconMail /></div>
         <div className="s-sheetHead">
           <h2 className="s-sheetH">임시 비밀번호를 보냈어요</h2>
           <p className="s-note"><b>{sentTo}</b>로 보냈어요. 메일이 안 보이면 스팸함도 확인해주세요.</p>
@@ -207,7 +208,7 @@ function ResetSheet({ prefill }: { prefill?: string }) {
   return (
     <Shell label="비밀번호 찾기">
       <form className="s-form" onSubmit={submit} noValidate>
-        <div className="s-bell"><IconLock size={24} /></div>
+        <div className="s-bell"><IconLock /></div>
         <Head title="비밀번호 찾기" note="가입한 이메일을 입력하면 임시 비밀번호를 보내드려요." />
         <Field id="remail" label="이메일" type="email" value={email} onChange={setEmail} placeholder="name@example.com" autoComplete="email" inputMode="email" />
         <p className="s-err" role="alert">{err}</p>
@@ -235,8 +236,8 @@ function NewPasswordSheet() {
     <Shell label="새 비밀번호를 정해주세요">
       <form className="s-form" onSubmit={submit} noValidate>
         <Head title="새 비밀번호를 정해주세요" note="임시 비밀번호로 로그인했어요. 앞으로 쓸 비밀번호로 바꿔주세요." />
-        <Field id="npw" label="새 비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" />
-        <Field id="npw2" label="한 번 더" type="password" value={pw2} onChange={setPw2} autoComplete="new-password" />
+        <Field id="npw" label="새 비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" noEye />
+        <Field id="npw2" label="한 번 더" type="password" value={pw2} onChange={setPw2} autoComplete="new-password" noEye />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn" disabled={busy}>바꾸기</button>
       </form>

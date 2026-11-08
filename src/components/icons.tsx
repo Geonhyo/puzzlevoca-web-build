@@ -26,7 +26,7 @@ export const IconJester = ({ size = 18 }: P) => (
     <rect x="4.4" y="18.2" width="15.2" height="2.6" rx="1.3" />
   </svg>
 );
-export const IconLock = ({ size = 22 }: P) => <S size={size}><rect x="5" y="10.5" width="14" height="10" rx="2.5" strokeWidth="2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" strokeWidth="2" /></S>;
-export const IconMail = ({ size = 22 }: P) => <S size={size}><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" strokeWidth="2" /><path d="M4.5 7.5 12 13l7.5-5.5" strokeWidth="2" /></S>;
-export const IconEye = ({ size = 18 }: P) => <S size={size}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" strokeWidth="1.8" /><circle cx="12" cy="12" r="3" strokeWidth="1.8" /></S>;
-export const IconEyeOff = ({ size = 18 }: P) => <S size={size}><path d="M4 4l16 16M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.7M6.4 7.9C3.9 9.6 2.5 12 2.5 12S6 18.5 12 18.5c1.5 0 2.9-.4 4-1M9.9 10a3 3 0 0 0 4.2 4.2" strokeWidth="1.8" /></S>;
+export const IconLock = ({ size = 26 }: P) => <S size={size}><rect x="5" y="10.5" width="14" height="10" rx="3" strokeWidth="2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" strokeWidth="2" /></S>;
+export const IconMail = ({ size = 26 }: P) => <S size={size}><rect x="3.5" y="5.5" width="17" height="13" rx="3" strokeWidth="2" /><path d="M4.5 7.5 12 13l7.5-5.5" strokeWidth="2" /></S>;
+export const IconEye = ({ size = 20 }: P) => <S size={size}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" strokeWidth="1.9" /><circle cx="12" cy="12" r="3" strokeWidth="1.9" /></S>;
+export const IconEyeOff = ({ size = 20 }: P) => <S size={size}><path d="M4 4l16 16M9.9 6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.6M6.4 7.6C3.9 9.4 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1M10 10a3 3 0 0 0 4.2 4.2" strokeWidth="1.9" /></S>;

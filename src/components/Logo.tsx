@@ -6,7 +6,7 @@ export function Logo({ className = 's-logo' }: { className?: string }) {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 13.8 215.4 46.4" className={className} role="img" aria-label="퍼즐보카">
       <g transform="translate(0 14.80) scale(0.6)">
         {LOGO_TILES.map(t => (
-          <rect key={`${t.r}${t.c}`} x={t.c * 26} y={t.r * 26} width="22" height="22" rx="6" style={{ fill: t.on ? 'var(--color-brand)' : 'var(--color-brand-pale)' }} />
+          <rect key={`${t.r}${t.c}`} x={t.c * 26} y={t.r * 26} width="22" height="22" rx="6" style={{ fill: t.on ? 'var(--color-brand)' : 'var(--color-brand-tint)' }} />
         ))}
       </g>
       <g transform="translate(-29.60 0)">

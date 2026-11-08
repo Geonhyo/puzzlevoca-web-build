@@ -18,7 +18,10 @@ test.describe('SEO', () => {
     // 실제 내용이 HTML 에 있음 (JS 없이도 읽힘)
     expect(html).toContain('오늘의 영어 퍼즐이 열렸어요');
     expect(html).toContain('일일 랭킹');
-    expect(html).toContain('word_cat');
+    // 랭킹 행이 서버에서 그려져 HTML 에 있음 (홈은 1분 캐시라 지금 1위와는 다를 수 있어 상위 100명 중 누군가인지만 본다)
+    const names: string[] = (await (await request.get('http://localhost:8000/api/rankings/today?limit=100')).json()).top.map((r: { loginId: string }) => r.loginId);
+    expect(html).toMatch(/class="s-rank m1/);
+    expect(names.some(n => html.includes(`<span>${n}</span>`))).toBe(true);
     // 정답 단어는 HTML 에 없어야 한다
     const { board } = await (async () => { const r = await request.get('http://localhost:8000/api/puzzles/today'); return { board: await r.json() }; })();
     for (const w of board.words) expect(html).not.toContain(w.answer);
