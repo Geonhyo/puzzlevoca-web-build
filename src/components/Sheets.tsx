@@ -5,7 +5,7 @@ import { Avatar, CHARS } from './Avatar';
 import { HelpRules } from './HelpRules';
 import { IconBell, IconDownload, IconShare, IconX } from './icons';
 import { Countdown } from './site';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { drawShareCard, shareText } from '@/lib/share-card';
 import { useApp } from '@/state/app';
 
@@ -50,7 +50,6 @@ function Field(props: { id: string; label: string; type: string; value: string; 
 
 function LoginSheet({ reason }: { reason?: string }) {
   const { authenticate, closeSheet, openSheet, updateMe } = useApp();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
@@ -62,7 +61,7 @@ function LoginSheet({ reason }: { reason?: string }) {
     if (pw.length < 8) { setErr('비밀번호는 8자 이상이에요.'); return; }
     setBusy(true); setErr('');
     try {
-      const m = await authenticate(mode, loginId, pw);
+      const m = await authenticate(loginId, pw);
       if (reason === 'notify') {
         // 로그인 → 메일이 있으면 바로 켜고, 없으면 메일 입력으로
         if (m?.user.email) { await updateMe({ notifyEnabled: true }).catch(() => {}); closeSheet(); }
@@ -72,19 +71,51 @@ function LoginSheet({ reason }: { reason?: string }) {
       setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요');
     } finally { setBusy(false); }
   };
-  const signup = mode === 'signup';
-  const note = reason === 'notify' ? '로그인하면 알림을 받을 수 있어요.' : signup ? '아이디와 비밀번호만 있으면 바로 시작해요.' : '아이디와 비밀번호를 입력해주세요.';
+  const note = reason === 'notify' ? '로그인하면 알림을 받을 수 있어요.' : '처음 쓰는 아이디면 그대로 가입돼요.';
   return (
-    <Shell label={signup ? '가입하기' : '로그인'}>
+    <Shell label="로그인">
       <form className="s-form" onSubmit={submit} noValidate>
-        <Head title={signup ? '가입하기' : '로그인'} note={note} />
-        <Field id="lid" label="아이디" type="text" value={id} onChange={setId} autoComplete="username" placeholder={signup ? '영소문자, 숫자, _ 4~16자' : undefined} />
-        <Field id="lpw" label="비밀번호" type="password" value={pw} onChange={setPw} autoComplete={signup ? 'new-password' : 'current-password'} placeholder={signup ? '8자 이상' : undefined} />
+        <Head title="로그인" note={note} />
+        <Field id="lid" label="아이디" type="text" value={id} onChange={setId} autoComplete="username" placeholder="영소문자, 숫자, _ 4~16자" />
+        <Field id="lpw" label="비밀번호" type="password" value={pw} onChange={setPw} autoComplete="current-password" placeholder="8자 이상" />
         <p className="s-err" role="alert">{err}</p>
-        <button type="submit" className="btn" disabled={busy}>{signup ? '가입하고 시작하기' : '로그인'}</button>
-        <button type="button" className="s-textBtn" onClick={() => { setMode(signup ? 'login' : 'signup'); setErr(''); }}>
-          {signup ? '이미 계정이 있어요 · 로그인' : '처음이에요 · 가입하기'}
-        </button>
+        <button type="submit" className="btn" disabled={busy}>로그인</button>
+        <button type="button" className="s-textBtn" onClick={() => openSheet('reset')}>비밀번호를 잊었어요</button>
+      </form>
+    </Shell>
+  );
+}
+
+function ResetSheet() {
+  const { openSheet } = useApp();
+  const [id, setId] = useState('');
+  const [err, setErr] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const loginId = id.trim();
+    if (!/^[a-z0-9_]{4,16}$/.test(loginId)) { setErr('아이디는 영소문자, 숫자, _ 로 4~16자예요.'); return; }
+    setBusy(true); setErr('');
+    try { setSentTo((await api.passwordReset(loginId)).email); } catch (e2) { setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요'); } finally { setBusy(false); }
+  };
+  if (sentTo) {
+    return (
+      <Shell label="비밀번호 찾기">
+        <div className="s-bell"><IconBell size={26} /></div>
+        <Head title="임시 비밀번호를 보냈어요" note={`${sentTo} 메일함을 확인해 주세요. 임시 비밀번호로 로그인하면 그게 새 비밀번호가 돼요.`} center />
+        <button type="button" className="btn" onClick={() => openSheet('login')}>로그인하러 가기</button>
+      </Shell>
+    );
+  }
+  return (
+    <Shell label="비밀번호 찾기">
+      <form className="s-form" onSubmit={submit} noValidate>
+        <Head title="비밀번호 찾기" note="아이디를 입력하면 등록된 이메일로 임시 비밀번호를 보내드려요." />
+        <Field id="rid" label="아이디" type="text" value={id} onChange={setId} autoComplete="username" />
+        <p className="s-err" role="alert">{err}</p>
+        <button type="submit" className="btn" disabled={busy}>임시 비밀번호 받기</button>
+        <button type="button" className="s-textBtn" onClick={() => openSheet('login')}>로그인으로 돌아가기</button>
       </form>
     </Shell>
   );
@@ -244,6 +275,7 @@ export function Sheets() {
   if (!sheet) return null;
   switch (sheet.kind) {
     case 'login': return <LoginSheet key="login" reason={sheet.reason} />;
+    case 'reset': return <ResetSheet key="reset" />;
     case 'notify': return <NotifySheet key="notify" />;
     case 'email': return <EmailSheet key="email" />;
     case 'popup': return <PopupSheet key="popup" />;

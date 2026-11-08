@@ -9,7 +9,7 @@ import { useApp } from '@/state/app';
 export function RankingView({ initial }: { initial: Ranking | null }) {
   const { ready, me, openSheet } = useApp();
   const [data, setData] = useState(initial);
-  useEffect(() => { api.ranking(10).then(setData).catch(() => {}); }, [me?.today.play?.total]);
+  useEffect(() => { api.ranking(100).then(setData).catch(() => {}); }, [me?.today.play?.total]);
   const [date, setDate] = useState<string | null>(null);
   useEffect(() => setDate(dateShort()), []);
 

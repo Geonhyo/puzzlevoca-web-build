@@ -40,8 +40,9 @@ async function request<T>(path: string, init: { method?: string; body?: unknown;
 export const api = {
   me: () => request<Me>('/api/me'),
   updateMe: (patch: Partial<{ email: string | null; notifyEnabled: boolean; avatar: number }>) => request<Me>('/api/me', { method: 'PATCH', body: patch }),
-  signup: (loginId: string, password: string) => request<{ ok: true }>('/api/auth/signup', { method: 'POST', body: { loginId, password } }),
-  login: (loginId: string, password: string) => request<{ ok: true }>('/api/auth/login', { method: 'POST', body: { loginId, password } }),
+  /** 로그인 = 회원가입 (처음 보는 아이디면 계정이 만들어짐) */
+  login: (loginId: string, password: string) => request<{ ok: true; created: boolean; usedTempPassword?: boolean }>('/api/auth/login', { method: 'POST', body: { loginId, password } }),
+  passwordReset: (loginId: string) => request<{ ok: true; email: string }>('/api/auth/password-reset', { method: 'POST', body: { loginId } }),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
   puzzle: () => request<PuzzleData>('/api/puzzles/today'),
   startPlay: (puzzleId: number) => request<{ token: string }>('/api/plays/start', { method: 'POST', body: { puzzleId } }),

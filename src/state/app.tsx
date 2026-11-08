@@ -24,7 +24,7 @@ export interface Session {
   dir: Dir;
 }
 
-export type SheetKind = 'login' | 'notify' | 'email' | 'popup' | 'share' | 'help' | 'avatar';
+export type SheetKind = 'login' | 'reset' | 'notify' | 'email' | 'popup' | 'share' | 'help' | 'avatar';
 export interface SheetState { kind: SheetKind; reason?: string }
 
 export interface ResultView {
@@ -45,7 +45,7 @@ interface Ctx {
   noPopup: boolean;
   sheet: SheetState | null;
   refreshMe: () => Promise<Me | null>;
-  authenticate: (mode: 'login' | 'signup', loginId: string, password: string) => Promise<Me | null>;
+  authenticate: (loginId: string, password: string) => Promise<Me | null>;
   logout: () => Promise<void>;
   updateMe: (patch: Parameters<typeof api.updateMe>[0]) => Promise<Me>;
   saveSession: (s: Session) => void;
@@ -175,8 +175,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (me && session?.phase === 'done' && !session.submitted) submit(session, me);
   }, [me, session, submit]);
 
-  const authenticate = useCallback(async (mode: 'login' | 'signup', loginId: string, password: string) => {
-    await (mode === 'login' ? api.login(loginId, password) : api.signup(loginId, password));
+  const authenticate = useCallback(async (loginId: string, password: string) => {
+    await api.login(loginId, password);
     return refreshMe();
   }, [refreshMe]);
 

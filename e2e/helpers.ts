@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 import { buildBoard, type PuzzleData } from '../src/shared/game-core';
 
@@ -34,12 +36,20 @@ export async function solveByKeyboard(page: Page, opts: { stopAfter?: number } =
   return n;
 }
 
+/** 로그인 = 가입. 처음 보는 아이디면 그대로 계정이 만들어진다. */
 export async function signup(page: Page, loginId: string, password = 'password123') {
-  await page.locator('.s-sheet').getByRole('button', { name: '처음이에요 · 가입하기' }).click();
-  await page.getByLabel('아이디').fill(loginId);
-  await page.getByLabel('비밀번호').fill(password);
-  await page.getByRole('button', { name: '가입하고 시작하기' }).click();
-  await expect(page.locator('.s-sheet')).toHaveCount(0);
+  await login(page, loginId, password);
+}
+
+/** 로컬 가짜 SMTP(mail-catcher)가 server/.mail 에 저장한 메일 중 받는 사람이 같은 최신 것 */
+export function lastMailTo(to: string) {
+  const dir = join(import.meta.dirname, '../../server/.mail');
+  const files = readdirSync(dir).filter(f => f.endsWith('.json')).sort().reverse();
+  for (const f of files) {
+    const m = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+    if (m.to === to) return m as { to: string; subject: string; text: string };
+  }
+  return null;
 }
 
 export async function login(page: Page, loginId: string, password: string) {
