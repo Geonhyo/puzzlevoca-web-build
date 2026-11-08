@@ -240,13 +240,13 @@ export interface Summary {
   paidJokers: number;
   jokerPenalty: number;
   maxCombo: number;
-  cleanWords: number; // 미스·조커 없이 맞힌 단어 수 (누적 단어에 더해짐)
+  learnedWords: number; // 이번 퍼즐에서 학습한 단어 수 = 완성한 단어 수 (미스·조커와 무관, 누적 단어에 더해짐)
   total: number;
   cells: CellResult;
 }
 
-export function cleanWordCount(board: Board, s: CoreState) {
-  return board.words.filter(w => w.cells.every(k => s.locked[k] === 't' && !s.missed[k])).length;
+export function learnedWordCount(board: Board, s: CoreState) {
+  return Object.keys(s.doneWords).length;
 }
 
 export function summarize(board: Board, s: CoreState, sec: number): Summary {
@@ -264,7 +264,7 @@ export function summarize(board: Board, s: CoreState, sec: number): Summary {
     paidJokers: s.paidJokers,
     jokerPenalty: s.jokerPen,
     maxCombo: s.maxCombo,
-    cleanWords: cleanWordCount(board, s),
+    learnedWords: learnedWordCount(board, s),
     total,
     cells: { locked: { ...s.locked }, missed: Object.keys(s.missed) },
   };

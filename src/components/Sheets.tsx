@@ -236,8 +236,8 @@ function NewPasswordSheet() {
     <Shell label="새 비밀번호를 정해주세요">
       <form className="s-form" onSubmit={submit} noValidate>
         <Head title="새 비밀번호를 정해주세요" note="임시 비밀번호로 로그인했어요. 앞으로 쓸 비밀번호로 바꿔주세요." />
-        <Field id="npw" label="새 비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" noEye />
-        <Field id="npw2" label="한 번 더" type="password" value={pw2} onChange={setPw2} autoComplete="new-password" noEye />
+        <Field id="npw" label="새 비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" />
+        <Field id="npw2" label="한 번 더" type="password" value={pw2} onChange={setPw2} autoComplete="new-password" />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn" disabled={busy}>바꾸기</button>
       </form>

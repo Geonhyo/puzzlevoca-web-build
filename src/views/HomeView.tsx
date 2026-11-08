@@ -11,9 +11,11 @@ import { replay } from '@/shared/game-core';
 function RankCard({ initial }: { initial: Ranking | null }) {
   const { me, played, openSheet, result } = useApp();
   const [data, setData] = useState(initial);
-  useEffect(() => { api.ranking(3).then(setData).catch(() => {}); }, [me?.today.play?.total, result?.summary.total]);
+  useEffect(() => { api.ranking(4).then(setData).catch(() => {}); }, [me?.today.play?.total, result?.summary.total]); // 3명 + 나
   const mine = me?.today.play ? <MeRankLine me={me} /> : null;
-  const rows = data?.top.length ? topLines(data.top.slice(0, 3)) : null;
+  // 프로토타입: 내 행을 맨 위에 두고, 아래에는 나를 뺀 상위 3명 (실제 순위 그대로)
+  const others = (data?.top ?? []).filter(r => !(mine && r.isMe)).slice(0, 3);
+  const rows = others.length ? topLines(others) : null;
   return (
     <>
       <section className="s-card s-rankCard">

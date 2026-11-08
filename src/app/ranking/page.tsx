@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default async function RankingPage() {
-  return <RankingView initial={await serverApi.ranking(100)} />;
+  return <RankingView initial={await serverApi.ranking(101)} />;
 }

@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { IconShare } from '@/components/icons';
 import { Header, MeRankLine, topLines } from '@/components/site';
 import { api, type Ranking } from '@/lib/api';
 import { dateShort } from '@/lib/kst';
@@ -9,11 +8,13 @@ import { useApp } from '@/state/app';
 export function RankingView({ initial }: { initial: Ranking | null }) {
   const { ready, me, openSheet } = useApp();
   const [data, setData] = useState(initial);
-  useEffect(() => { api.ranking(100).then(setData).catch(() => {}); }, [me?.today.play?.total]);
+  useEffect(() => { api.ranking(101).then(setData).catch(() => {}); }, [me?.today.play?.total]); // 100명 + 나
   const [date, setDate] = useState<string | null>(null);
   useEffect(() => setDate(dateShort()), []);
 
   const mine = me?.today.play ? <section className="s-card s-myRank"><MeRankLine me={me} extra="" /></section> : null;
+  // 프로토타입: 내 순위는 위 카드에, 목록에는 나를 뺀 사람들만 (실제 순위 그대로). 나만 풀었으면 내 카드만.
+  const others = (data?.top ?? []).filter(r => !(mine && r.isMe)).slice(0, 100);
   return (
     <div className="site" aria-busy={!ready}>
       <Header />
@@ -24,12 +25,11 @@ export function RankingView({ initial }: { initial: Ranking | null }) {
             <span className="s-chipDate" suppressHydrationWarning>{date ?? (data ? dateShort(Date.parse(`${data.puzzle.date}T12:00:00+09:00`)) : dateShort())}</span>
           </div>
           <div className="s-dyn" style={{ display: 'contents' }}>{mine}</div>
-          {data?.top.length ? (
-            <section className="s-card s-rankList">{topLines(data.top)}</section>
-          ) : (
+          {others.length ? (
+            <section className="s-card s-rankList">{topLines(others)}</section>
+          ) : mine ? null : (
             <section className="s-card s-stack s-emptyCard">
-              <p className="s-note" style={{ fontSize: 14 }}>{mine ? '아직 오늘은 나만 풀었어요' : '오늘의 랭킹이 비어 있어요'}</p>
-              {mine ? <button type="button" className="btn sm line s-auto" style={{ gap: 6, padding: '0 20px' }} onClick={() => openSheet('share')}><IconShare />공유하기</button> : null}
+              <p className="s-note" style={{ fontSize: 14 }}>오늘의 랭킹이 비어 있어요</p>
             </section>
           )}
           {ready && !me ? (
