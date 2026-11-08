@@ -25,7 +25,8 @@ export class ApiError extends Error {
 async function request<T>(path: string, init: { method?: string; body?: unknown; signal?: AbortSignal; server?: boolean } = {}): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    // 브라우저: 같은 주소(/api → 프록시), 서버 렌더링: API 서버로 바로
+    res = await fetch(`${typeof window === 'undefined' ? API_URL : ''}${path}`, {
       method: init.method ?? 'GET',
       credentials: 'include',
       headers: init.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,

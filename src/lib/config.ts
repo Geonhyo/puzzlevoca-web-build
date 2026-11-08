@@ -1,5 +1,10 @@
 /** 환경 변수 (.env / .env.prod). NEXT_PUBLIC_* 는 빌드 시 코드에 들어간다. */
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '');
+/**
+ * API 서버 주소 (서버에서만 씀 — 브라우저 코드에는 들어가지 않는다).
+ * 브라우저는 같은 주소의 /api/* 를 부르고, Next 가 이 주소로 프록시한다 (next.config.ts rewrites).
+ * 그래서 로그인 쿠키가 puzzlevoca.com 의 퍼스트파티 쿠키가 된다.
+ */
+export const API_URL = (process.env.API_URL || 'http://localhost:8000').replace(/\/$/, '');
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
 export const SITE_NAME = '퍼즐보카';
 export const TAGLINE = '하루 한 판, 영단어가 쌓여요';

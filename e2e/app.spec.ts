@@ -195,6 +195,13 @@ test('프로필: 캐릭터, 이메일, 알림, 로그아웃', async ({ page }, i
 
 test('기존 계정 로그인: 연속 학습·티어가 보인다', async ({ page }, info) => {
   const tag = info.project.name;
+  // 브라우저는 API 서버를 직접 부르지 않고 같은 주소의 /api (Next 프록시) 로만 부른다
+  const direct: string[] = [], proxied: string[] = [];
+  page.on('request', r => {
+    const u = new URL(r.url());
+    if (u.port === '8000') direct.push(r.url());
+    else if (u.pathname.startsWith('/api/')) proxied.push(u.pathname);
+  });
   await page.goto('/');
   await page.getByRole('button', { name: '로그인' }).first().click();
   await login(page, 'demo_user', 'wrong-password', { expectClosed: false });
@@ -213,6 +220,9 @@ test('기존 계정 로그인: 연속 학습·티어가 보인다', async ({ pag
   await page.goto('/profile');
   await expect(page.locator('.s-track')).toBeVisible();
   await shot(page, `${tag}-14-profile-demo`);
+  expect(direct).toEqual([]);
+  expect(proxied).toContain('/api/auth/login');
+  expect((await page.context().cookies('http://localhost:3000')).map(c => c.name)).toContain('pv_session');
 });
 
 test('도움말 시트', async ({ page }, info) => {

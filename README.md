@@ -17,7 +17,7 @@
 
 ## 로컬 실행
 
-API 서버가 필요해요. `.env.example` 을 `.env` 로 복사해 `NEXT_PUBLIC_API_URL` 을 API 주소로 바꾼 뒤:
+API 서버가 필요해요. `.env.example` 을 `.env` 로 복사해 `API_URL` 을 API 주소로 바꾼 뒤:
 
 ```bash
 pnpm install
