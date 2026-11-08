@@ -198,7 +198,14 @@ test('기존 계정 로그인: 연속 학습·티어가 보인다', async ({ pag
   await page.goto('/');
   await page.getByRole('button', { name: '로그인' }).first().click();
   await login(page, 'demo_user', 'wrong-password', { expectClosed: false });
-  await expect(page.locator('.s-err')).toHaveText('비밀번호가 맞지 않아요.');
+  await expect(page.locator('.s-err')).toHaveText('아이디나 비밀번호가 일치하지 않아요.');
+  await expect(page.locator('#lid')).toHaveValue('demo_user'); // 아이디는 남고
+  await expect(page.locator('#lpw')).toHaveValue('');          // 비밀번호는 비우고
+  await expect(page.locator('#lpw')).toBeFocused();            // 그 칸으로
+  await login(page, 'nobody_zz', 'whatever-pass', { expectClosed: false });
+  await expect(page.locator('.s-err')).toHaveText('아이디나 비밀번호가 일치하지 않아요.');
+  await page.locator('#lid').fill(''); await page.locator('.s-sheet').getByRole('button', { name: '로그인', exact: true }).click();
+  await expect(page.locator('.s-err')).toHaveText('이메일이나 아이디를 입력해주세요.');
   await login(page, 'demo.user@example.com', 'puzzle1234'); // 이메일로도 로그인
   await expect(page.locator('.s-stTop')).toContainText('6일 연속');
   await expect(page.locator('.s-ava .s-tb').filter({ visible: true })).not.toHaveText('?');

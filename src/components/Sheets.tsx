@@ -94,7 +94,14 @@ function LoginSheet({ reason, prefill }: { reason?: string; prefill?: string }) 
       const r = await authenticate(id.trim(), pw);
       await after(r.me, r.usedTempPassword);
     } catch (e2) {
-      setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요');
+      if (e2 instanceof ApiError && e2.status === 401) {
+        // 로그인 실패: 이유를 구분하지 않는다. 아이디는 남기고 비밀번호는 비운 뒤 그 칸으로
+        setErr('아이디나 비밀번호가 일치하지 않아요.');
+        setPw('');
+        requestAnimationFrame(() => document.getElementById('lpw')?.focus());
+      } else {
+        setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요');
+      }
     } finally { setBusy(false); }
   };
   return (
