@@ -87,8 +87,10 @@ test('비로그인: 미스·조커 → 끝까지 풀기 → 결과 → 공유 �
 
   await expect(page.locator('.s-score .s-big')).toContainText('점');
   await expect(page.locator('.s-pct')).toHaveText(/명 중 \d+등|상위 \d+%/);
-  await expect(page.locator('.word .tg', { hasText: '미스' })).toHaveCount(1);
-  await expect(page.locator('.word .tg.j')).toHaveCount(1);
+  // 미스/조커 칸이 가로세로 교차 칸이면 두 단어에 함께 표시된다
+  const crossCount = (k: string) => (board.cells[k].words.A != null ? 1 : 0) + (board.cells[k].words.D != null ? 1 : 0);
+  await expect(page.locator('.word .tg', { hasText: '미스' })).toHaveCount(crossCount(key));
+  await expect(page.locator('.word .tg.j')).toHaveCount(crossCount(jkKey));
   await expect(page.getByText('미스 1회')).toBeVisible();
   await shot(page, `${tag}-05-result`);
 
@@ -278,3 +280,50 @@ test('비밀번호 찾기: 이메일 → 임시 비밀번호 로그인 → 새 �
   await login(page, id, 'brand-new-pass');
   await expect(page.getByRole('link', { name: '프로필' }).filter({ visible: true })).toBeVisible();
 });
+
+for (const mode of ['share', 'noshare'] as const) {
+  test(`결과 카드: ${mode === 'share' ? '공유 지원 기기 → 카드 공유하기 + 이미지로 저장' : '공유 미지원 기기 → 이미지 저장만'}`, async ({ page }, info) => {
+    await page.addInitScript(m => {
+      const w = window as unknown as { __shared?: { name: string; type: string; text?: string }[] };
+      if (m === 'share') {
+        w.__shared = [];
+        Object.defineProperty(Navigator.prototype, 'canShare', { configurable: true, value: (d: { files?: File[] }) => !!d?.files?.length });
+        Object.defineProperty(Navigator.prototype, 'share', {
+          configurable: true,
+          value: async (d: { files: File[]; text?: string }) => { w.__shared!.push(...d.files.map(f => ({ name: f.name, type: f.type, text: d.text }))); },
+        });
+      } else {
+        Object.defineProperty(Navigator.prototype, 'canShare', { configurable: true, value: undefined });
+        Object.defineProperty(Navigator.prototype, 'share', { configurable: true, value: undefined });
+      }
+    }, mode);
+    await page.goto('/play');
+    await solveByKeyboard(page);
+    await expect(page).toHaveURL(/\/result$/);
+    await page.getByRole('dialog', { name: '다음 퍼즐 알림' }).locator('button.btn.line').click();
+    await page.getByRole('button', { name: '친구들에게 공유하기' }).click();
+    const sheet = page.getByRole('dialog', { name: '결과 카드 공유' });
+    await expect(sheet.locator('img.s-shareImg')).toHaveAttribute('src', /^data:image\/png/);
+    await page.waitForTimeout(400); // 시트 애니메이션
+    await page.screenshot({ path: `test-results/screens/${info.project.name}-21-share-${mode}.png` });
+
+    if (mode === 'share') {
+      await expect(sheet.getByRole('button', { name: '이미지 저장' })).toHaveCount(0);
+      await sheet.getByRole('button', { name: '카드 공유하기' }).click();
+      const read = () => page.evaluate(() => (window as unknown as { __shared: { name: string; type: string; text?: string }[] }).__shared);
+      await expect.poll(async () => (await read()).length).toBe(1);
+      const shared = await read();
+      expect(shared[0]).toMatchObject({ type: 'image/png', name: expect.stringMatching(/^puzzlevoca-\d+\.png$/) });
+      const dl = page.waitForEvent('download');
+      await sheet.getByRole('button', { name: '이미지로 저장' }).click();
+      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca-\d+\.png$/);
+    } else {
+      await expect(sheet.getByRole('button', { name: '카드 공유하기' })).toHaveCount(0);
+      await expect(sheet.getByRole('button', { name: '이미지로 저장' })).toHaveCount(0);
+      const dl = page.waitForEvent('download');
+      await sheet.getByRole('button', { name: '이미지 저장' }).click();
+      expect((await dl).suggestedFilename()).toMatch(/^puzzlevoca-\d+\.png$/);
+      await expect(sheet.getByRole('button', { name: '저장했어요' })).toBeVisible();
+    }
+  });
+}

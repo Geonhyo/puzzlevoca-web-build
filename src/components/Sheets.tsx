@@ -311,13 +311,23 @@ function PopupSheet() {
   );
 }
 
+/** 이 브라우저가 이미지 파일 공유(시스템 공유 시트)를 지원하는지. 화면 너비와 무관하게 기능으로만 판별한다. */
+function canShareFiles() {
+  try {
+    if (typeof navigator === 'undefined' || !navigator.share || !navigator.canShare) return false;
+    const probe = new File([new Uint8Array([137, 80, 78, 71])], 'probe.png', { type: 'image/png' });
+    return navigator.canShare({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
+
 function ShareSheet() {
   const { result, board, puzzle, me } = useApp();
   const [url, setUrl] = useState<string | null>(null);
   const cv = useRef<HTMLCanvasElement | null>(null);
-  const [dl, setDl] = useState('이미지 저장');
-  const [sys, setSys] = useState('다른 앱으로 보내기');
-  const [copy, setCopy] = useState('링크 복사');
+  const [shareable, setShareable] = useState(canShareFiles);
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     if (!result || !board || !puzzle) return;
     let alive = true;
@@ -333,34 +343,31 @@ function ShareSheet() {
   const save = () => {
     if (!url) return;
     const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setDl('저장했어요');
+    setSaved(true);
   };
-  const send = async () => {
+  const share = async () => {
     if (!result) return;
     try {
       const file = new File([await blob()], name, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text: shareText(result.summary) }); return; }
-      if (navigator.share) { await navigator.share({ text: shareText(result.summary) }); return; }
-      throw new Error('no share');
+      await navigator.share({ files: [file], text: shareText(result.summary) });
     } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return;
-      setSys('이 기기에서는 이미지 저장을 써주세요');
+      if ((e as Error)?.name === 'AbortError') return; // 사용자가 공유 창을 닫음
+      setShareable(false); // 공유가 실패하면 저장만 보여준다
     }
-  };
-  const copyLink = async () => {
-    if (!result) return;
-    try { await navigator.clipboard.writeText(shareText(result.summary)); setCopy('복사했어요'); } catch { setCopy('복사할 수 없는 환경이에요'); }
   };
   return (
     <Shell label="결과 카드 공유">
       <Head title="결과 카드" note="단어는 숨기고 판 모양만 보여줘요." center />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {url ? <img className="s-shareImg" src={url} alt="오늘 결과 카드" /> : <div className="s-shareImg" aria-hidden="true" />}
-      <div className="s-col8">
-        <button type="button" className="btn" onClick={save} disabled={!url}><IconDownload />{dl}</button>
-        <button type="button" className="btn line" onClick={send} disabled={!url}><IconShare />{sys}</button>
-        <button type="button" className="s-textBtn" onClick={copyLink}>{copy}</button>
-      </div>
+      {shareable ? (
+        <div className="s-col8">
+          <button type="button" className="btn" onClick={share} disabled={!url}><IconShare />카드 공유하기</button>
+          <button type="button" className="s-textBtn" onClick={save} disabled={!url}>{saved ? '저장했어요' : '이미지로 저장'}</button>
+        </div>
+      ) : (
+        <button type="button" className="btn" onClick={save} disabled={!url}><IconDownload />{saved ? '저장했어요' : '이미지 저장'}</button>
+      )}
     </Shell>
   );
 }
