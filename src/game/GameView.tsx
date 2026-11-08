@@ -70,7 +70,7 @@ export function GameView() {
 }
 
 function Game({ board, initial }: { board: Board; initial: Session }) {
-  const { saveSession, finish, openSheet, noPopup } = useApp();
+  const { saveSession, finish, markCelebrate } = useApp();
   const router = useRouter();
   const { mode, short } = useLayoutMode();
   const N = board.size;
@@ -158,8 +158,8 @@ function Game({ board, initial }: { board: Board; initial: Session }) {
       const done: Session = { ...sess.current, activeMs: ms, phase: 'done', summary: summarize(board, core.current, sec) };
       sess.current = done;
       finish(done);
+      markCelebrate(); // 결과 화면이 연출을 한 번 재생하고, 끝나면 알림 팝업을 띄운다
       router.push('/result');
-      if (!noPopup) setTimeout(() => openSheet('popup'), 450);
     }, 800);
   };
 

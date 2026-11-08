@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { expect, test } from '@playwright/test';
 import { lastMailTo, login, selectedKey, shot, signup, solveByKeyboard, todayPuzzle, uid } from './helpers';
 
@@ -338,3 +339,69 @@ for (const mode of ['share', 'noshare'] as const) {
     }
   });
 }
+
+test.describe('결과 화면 연출', () => {
+  const psql = (q: string) => execSync(`psql -h 127.0.0.1 puzzlevoca_local -qtAc "${q}"`).toString().trim();
+  const badge = (page: import('@playwright/test').Page) => page.locator('.s-ava .s-tb').filter({ visible: true });
+
+  test('승급: 어제 티어로 시작 → 100% 채운 뒤 새 티어, 헤더 배지도 바뀌고 팝업은 연출 뒤에', async ({ page }) => {
+    const id = uid('anim');
+    await page.goto('/');
+    await page.getByRole('button', { name: '로그인' }).first().click();
+    await signup(page, id);
+    psql(`update tb_user_rating r set tier='gold', division=3, lp=95, expected_pct=30 from tb_user u where u.id=r.user_id and u.login_id='${id}'`);
+    await page.reload();
+    await page.goto('/play');
+    await solveByKeyboard(page);
+    await page.waitForURL(/\/result$/);
+    const t0 = Date.now();
+    await expect(badge(page)).toHaveText('G3');
+    await expect(page.locator('.s-tbar .lbl b')).toHaveText('골드 3');
+    await expect(page.locator('.s-tbar .foot')).toHaveCSS('opacity', '0');
+    await expect(page.locator('.s-tbar .lbl b')).toHaveText('골드 2', { timeout: 4000 });
+    await expect(badge(page)).toHaveText('G2');
+    expect(Date.now() - t0).toBeGreaterThan(1500); // 카운트업 0.9 + 0.25 + 채우기 0.8
+    await expect(page.getByRole('dialog', { name: '다음 퍼즐 알림' })).toBeVisible({ timeout: 4000 });
+    expect(Date.now() - t0).toBeGreaterThan(2300);
+    await expect(page.locator('.s-tbar .foot')).toHaveCSS('opacity', '1');
+
+    // 재진입: 연출·팝업 없이 최종 상태
+    await page.getByRole('dialog', { name: '다음 퍼즐 알림' }).locator('button.btn.line').click();
+    await page.goto('/');
+    await page.goto('/result');
+    await expect(page.locator('.s-tbar .lbl b')).toHaveText('골드 2');
+    await expect(page.locator('.s-tbar .foot')).toHaveCSS('opacity', '1');
+    await expect(page.locator('.s-score .s-big span')).not.toHaveText('0');
+    await page.waitForTimeout(3000);
+    await expect(page.getByRole('dialog', { name: '다음 퍼즐 알림' })).toHaveCount(0);
+  });
+
+  test('비로그인: 점수 카운트업만, 팝업 1.2초', async ({ page }) => {
+    const { puzzle } = await todayPuzzle(page);
+    void puzzle;
+    await page.goto('/play');
+    await solveByKeyboard(page);
+    await page.waitForURL(/\/result$/);
+    const t0 = Date.now();
+    const first = Number((await page.locator('.s-score .s-big span').textContent())!.replace(/,/g, ''));
+    await expect(page.getByRole('dialog', { name: '다음 퍼즐 알림' })).toBeVisible({ timeout: 4000 });
+    expect(Date.now() - t0).toBeGreaterThan(900);
+    const last = Number((await page.locator('.s-score .s-big span').textContent())!.replace(/,/g, ''));
+    expect(first).toBeLessThan(last); // 0 에서 올라감
+  });
+
+  test('동작 줄이기: 연출 없이 최종 상태, 팝업 0.45초', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { board } = await todayPuzzle(page);
+    void board;
+    await page.goto('/play');
+    await solveByKeyboard(page);
+    await page.waitForURL(/\/result$/);
+    const t0 = Date.now();
+    const shown = await page.locator('.s-score .s-big span').textContent();
+    await expect(page.getByRole('dialog', { name: '다음 퍼즐 알림' })).toBeVisible({ timeout: 3000 });
+    expect(Date.now() - t0).toBeLessThan(1500);
+    await expect(page.locator('.s-score .s-big span')).toHaveText(shown!); // 처음부터 최종 점수
+    expect(Number(shown!.replace(/,/g, ''))).toBeGreaterThan(1000);
+  });
+});

@@ -9,6 +9,7 @@ import { api, ApiError, type Me, type Position } from '@/lib/api';
 import { kstDate } from '@/lib/kst';
 import { store } from '@/lib/storage';
 import { buildBoard, type Board, type Dir, type GameEvent, type PuzzleData, type Summary } from '@/shared/game-core';
+import type { Step } from '@/shared/rating';
 
 export interface Session {
   v: 1;
@@ -53,6 +54,13 @@ interface Ctx {
   newSession: () => Session | null;
   finish: (s: Session) => Promise<void>;
   setNoPopup: (v: boolean) => void;
+  /** 게임을 막 끝낸 시각 (결과 화면 연출을 한 번만 재생하기 위한 메모리 표시, 새로고침하면 사라짐) */
+  celebrate: number | null;
+  markCelebrate: () => void;
+  clearCelebrate: () => void;
+  /** 결과 연출 중 헤더 티어 배지를 잠시 다른 단계로 보여줄 때 (null 이면 실제 값) */
+  badgeOverride: Step | null;
+  setBadgeOverride: (s: Step | null) => void;
   openSheet: (kind: SheetKind, reason?: string, prefill?: string) => void;
   closeSheet: () => void;
 }
@@ -76,6 +84,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [anonPosition, setAnonPosition] = useState<Position | null>(null);
   const [noPopup, setNoPopupState] = useState(false);
+  const [celebrate, setCelebrate] = useState<number | null>(null);
+  const [badgeOverride, setBadgeOverride] = useState<Step | null>(null);
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const dateRef = useRef(kstDate());
   const submitting = useRef(false);
@@ -219,6 +229,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     me, puzzle, board, puzzleError, session, result, played: !!result, noPopup, sheet,
     refreshMe, authenticate, signup, logout, updateMe, saveSession, newSession, finish,
     setNoPopup: v => { setNoPopupState(v); store.set(PREF_NO_POPUP, v); },
+    celebrate,
+    markCelebrate: () => setCelebrate(Date.now()),
+    clearCelebrate: () => setCelebrate(null),
+    badgeOverride,
+    setBadgeOverride,
     openSheet: (kind, reason, prefill) => setSheet({ kind, reason, prefill }),
     closeSheet: () => setSheet(null),
   };

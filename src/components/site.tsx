@@ -15,6 +15,8 @@ import { ladder, nextStep, TIER_META, tierLabel, tierShort, type Tier } from '@/
 
 /* ─── 상단 바 ─── */
 function TierBadge({ me }: { me: Me }) {
+  const { badgeOverride } = useApp();
+  if (badgeOverride) return <span className={`s-tb ${tierCls(badgeOverride.tier)}`}>{tierShort(badgeOverride)}</span>;
   const v = ratingView(me);
   if (v.placing) return <span className="s-tb t-none">?</span>;
   return <span className={`s-tb ${tierCls(v.tier)}`}>{tierShort(v)}</span>;
@@ -176,16 +178,43 @@ export function TierBar({ me, big }: { me: Me; big?: boolean }) {
       </div>
     );
   }
+  const f = tierFrame(v);
+  return (
+    <div className="s-tbar" aria-label="티어 진행도">
+      <div className="lbl"><b>{f.label}</b><span>{f.next}</span></div>
+      <div className="s-track"><span className="fill" style={{ width: `${f.pct}%` }} /><span className="dot" style={{ left: `${f.pct}%` }} /></div>
+      <div className="foot"><TierFoot v={v} /></div>
+    </div>
+  );
+}
+
+/** 티어 바 위쪽(현재·다음 단계)과 채움 % */
+export function tierFrame(s: { tier: Tier; div: number; lp: number }) {
+  const nx = nextStep(s);
+  return { label: tierLabel(s), next: nx ? tierLabel(nx) : '', pct: Math.max(0, Math.min(100, s.lp)) };
+}
+
+/** 티어 바 아래 줄: 오늘 변화 + 누적 포인트 */
+function TierFoot({ v }: { v: Extract<ReturnType<typeof ratingView>, { placing: false }> }) {
   const nx = nextStep(v);
-  const fill = Math.max(0, Math.min(100, v.lp));
   const d = v.delta == null
     ? <span>오늘 풀면 반영돼요</span>
     : <span>오늘 <span className={v.delta >= 0 ? 's-up' : 's-dn'}>{v.delta > 0 ? '+' : v.delta < 0 ? '−' : '±'}{Math.abs(v.delta)}</span>{v.up ? ' · 승급!' : v.down ? ' · 강등' : v.guard ? ' · 강등 보호' : ''}</span>;
+  return <>{d}<span className="s-pts">{ladder(v).toLocaleString()}{nx ? ` / ${(ladder(v) - v.lp + 100).toLocaleString()}` : ''}</span></>;
+}
+
+/**
+ * 결과 연출용 티어 바: 위쪽과 채움은 처음(어제) 값으로 한 번만 그리고, 이후는 lib/result-anim 이 직접 움직인다.
+ * 아래 줄은 오늘 값이 오면 그려지되, 연출이 페이드인할 때까지 보이지 않는다.
+ */
+export function AnimatedTierBar({ me, from, barRef }: { me: Me; from: { label: string; next: string; pct: number }; barRef: React.Ref<HTMLDivElement> }) {
+  const [start] = useState(from);
+  const v = ratingView(me);
   return (
-    <div className="s-tbar" aria-label="티어 진행도">
-      <div className="lbl"><b>{tierLabel(v)}</b><span>{nx ? tierLabel(nx) : ''}</span></div>
-      <div className="s-track"><span className="fill" style={{ width: `${fill}%` }} /><span className="dot" style={{ left: `${fill}%` }} /></div>
-      <div className="foot">{d}<span className="s-pts">{ladder(v).toLocaleString()}{nx ? ` / ${(ladder(v) - v.lp + 100).toLocaleString()}` : ''}</span></div>
+    <div className="s-tbar" aria-label="티어 진행도" ref={barRef}>
+      <div className="lbl"><b>{start.label}</b><span>{start.next}</span></div>
+      <div className="s-track"><span className="fill" style={{ width: `${start.pct}%` }} /><span className="dot" style={{ left: `${start.pct}%` }} /></div>
+      <div className="foot" style={{ opacity: 0 }}>{v.placing ? null : <TierFoot v={v} />}</div>
     </div>
   );
 }
