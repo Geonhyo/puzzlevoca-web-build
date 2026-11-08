@@ -21,9 +21,8 @@ h1, h2, h3, p { margin: 0; }
 .row .v { font-family: var(--font); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
 .row.total { font-weight: var(--weight-bold); }
 
-.rule { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: start; padding: 12px 0; font-family: var(--font-ko); font-size: 14px; line-height: 1.5; color: var(--color-ink-2); }
+.rule { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: center; padding: 12px 0; font-family: var(--font-ko); font-size: 14px; line-height: 1.5; letter-spacing: -0.02em; color: var(--color-ink-2); }
 .rule + .rule { border-top: 1px solid var(--color-divider); }
-.rule b { color: var(--color-ink); font-weight: var(--weight-bold); }
 .rule .no { width: 26px; height: 26px; border-radius: 50%; background: var(--color-ink); color: var(--color-on-dark); display: flex; align-items: center; justify-content: center; font-family: var(--font); font-size: 13px; font-weight: var(--weight-bold); }
 
 .word { padding: 12px 0; }

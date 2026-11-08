@@ -378,7 +378,7 @@ function HelpSheet() {
   const { closeSheet } = useApp();
   return (
     <Shell label="도움말">
-      <Head title="도움말" note="하루 한 판, 이렇게 풀어요." />
+      <Head title="도움말" />
       <HelpRules bare />
       <button type="button" className="btn" onClick={closeSheet}>확인</button>
     </Shell>
