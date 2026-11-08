@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Avatar, CHARS } from './Avatar';
 import { HelpRules } from './HelpRules';
-import { IconBell, IconDownload, IconShare, IconX } from './icons';
+import { IconBell, IconDownload, IconEye, IconEyeOff, IconLock, IconMail, IconShare, IconX } from './icons';
 import { Countdown } from './site';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, type Me } from '@/lib/api';
 import { drawShareCard, shareText } from '@/lib/share-card';
 import { useApp } from '@/state/app';
 
@@ -38,84 +38,207 @@ const Head = ({ title, note, center }: { title: string; note?: string; center?: 
   <div className={`s-sheetHead${center ? ' center' : ''}`}><h2 className="s-sheetH">{title}</h2>{note ? <p className="s-note">{note}</p> : null}</div>
 );
 
-function Field(props: { id: string; label: string; type: string; value: string; onChange: (v: string) => void; placeholder?: string; autoComplete: string }) {
+function Field(props: {
+  id: string; label: string; type: string; value: string; onChange: (v: string) => void; placeholder?: string; autoComplete: string;
+  aside?: React.ReactNode; inputMode?: 'email' | 'text'; onBlur?: () => void;
+}) {
+  const [show, setShow] = useState(false);
+  const pw = props.type === 'password';
   return (
     <div className="s-field">
-      <label htmlFor={props.id}>{props.label}</label>
-      <input id={props.id} name={props.id} type={props.type} value={props.value} placeholder={props.placeholder} autoComplete={props.autoComplete}
-        autoCapitalize="none" spellCheck={false} onChange={e => props.onChange(e.target.value)} />
+      <div className="s-fieldHead"><label htmlFor={props.id}>{props.label}</label>{props.aside}</div>
+      <div className={pw ? 's-pw' : undefined}>
+        <input id={props.id} name={props.id} type={pw && show ? 'text' : props.type} value={props.value} placeholder={props.placeholder} autoComplete={props.autoComplete}
+          inputMode={props.inputMode} autoCapitalize="none" spellCheck={false} onChange={e => props.onChange(e.target.value)} onBlur={props.onBlur} />
+        {pw ? (
+          <button type="button" className="s-eye" aria-label={show ? '비밀번호 숨기기' : '비밀번호 보기'} aria-pressed={show} onClick={() => setShow(v => !v)}>
+            {show ? <IconEyeOff /> : <IconEye />}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
-function LoginSheet({ reason }: { reason?: string }) {
-  const { authenticate, closeSheet, openSheet, updateMe } = useApp();
-  const [id, setId] = useState('');
+const ID_RE = /^[a-z0-9_]{4,16}$/;
+
+/** 로그인 뒤 처리: 임시 비밀번호였으면 새 비밀번호 정하기, 알림 신청 중이었으면 알림 켜기 */
+function useAfterAuth(reason?: string) {
+  const { closeSheet, openSheet, updateMe } = useApp();
+  return async (me: Me | null, usedTemp = false) => {
+    if (usedTemp) { openSheet('newPassword'); return; }
+    if (reason === 'notify') {
+      if (me?.user.email) { await updateMe({ notifyEnabled: true }).catch(() => {}); closeSheet(); }
+      else openSheet('notify');
+      return;
+    }
+    closeSheet();
+  };
+}
+
+function LoginSheet({ reason, prefill }: { reason?: string; prefill?: string }) {
+  const { authenticate, openSheet } = useApp();
+  const after = useAfterAuth(reason);
+  const [id, setId] = useState(prefill ?? '');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const loginId = id.trim();
-    if (!/^[a-z0-9_]{4,16}$/.test(loginId)) { setErr('아이디는 영소문자, 숫자, _ 로 4~16자예요.'); return; }
-    if (pw.length < 8) { setErr('비밀번호는 8자 이상이에요.'); return; }
+    if (!id.trim()) { setErr('이메일이나 아이디를 입력해주세요.'); return; }
+    if (!pw) { setErr('비밀번호를 입력해주세요.'); return; }
     setBusy(true); setErr('');
     try {
-      const m = await authenticate(loginId, pw);
-      if (reason === 'notify') {
-        // 로그인 → 메일이 있으면 바로 켜고, 없으면 메일 입력으로
-        if (m?.user.email) { await updateMe({ notifyEnabled: true }).catch(() => {}); closeSheet(); }
-        else openSheet('notify');
-      } else closeSheet();
+      const r = await authenticate(id.trim(), pw);
+      await after(r.me, r.usedTempPassword);
     } catch (e2) {
       setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요');
     } finally { setBusy(false); }
   };
-  const note = reason === 'notify' ? '로그인하면 알림을 받을 수 있어요.' : '처음 쓰는 아이디면 그대로 가입돼요.';
   return (
     <Shell label="로그인">
       <form className="s-form" onSubmit={submit} noValidate>
-        <Head title="로그인" note={note} />
-        <Field id="lid" label="아이디" type="text" value={id} onChange={setId} autoComplete="username" placeholder="영소문자, 숫자, _ 4~16자" />
-        <Field id="lpw" label="비밀번호" type="password" value={pw} onChange={setPw} autoComplete="current-password" placeholder="8자 이상" />
+        <Head title="로그인" note={reason === 'notify' ? '로그인하면 알림을 받을 수 있어요.' : '이메일이나 아이디로 로그인해요.'} />
+        <Field id="lid" label="이메일 또는 아이디" type="text" value={id} onChange={setId} autoComplete="username" inputMode="email" />
+        <Field id="lpw" label="비밀번호" type="password" value={pw} onChange={setPw} autoComplete="current-password"
+          aside={<button type="button" className="s-fieldLink" onClick={() => openSheet('reset', undefined, id.includes('@') ? id.trim() : undefined)}>비밀번호를 잊었어요</button>} />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn" disabled={busy}>로그인</button>
-        <button type="button" className="s-textBtn" onClick={() => openSheet('reset')}>비밀번호를 잊었어요</button>
+        <p className="s-switchLine">처음이라면 <button type="button" className="s-inlineBtn" onClick={() => openSheet('signup', reason)}>새 계정 만들기</button></p>
       </form>
     </Shell>
   );
 }
 
-function ResetSheet() {
+type IdState = 'idle' | 'invalid' | 'checking' | 'ok' | 'taken';
+
+function SignupSheet({ reason }: { reason?: string }) {
+  const { signup, openSheet } = useApp();
+  const after = useAfterAuth(reason);
+  const [email, setEmail] = useState('');
+  const [loginId, setLoginId] = useState('');
+  const [pw, setPw] = useState('');
+  const [idState, setIdState] = useState<IdState>('idle');
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const id = loginId.trim().toLowerCase();
+
+  // 이메일을 쓰면 아이디 추천 (아이디가 비어 있을 때)
+  useEffect(() => {
+    const e = email.trim();
+    if (id || !validEmail(e)) { setSuggestion(null); return; }
+    const ac = new AbortController();
+    const t = setTimeout(() => api.idSuggest(e, ac.signal).then(r => setSuggestion(r.suggestion)).catch(() => {}), 300);
+    return () => { clearTimeout(t); ac.abort(); };
+  }, [email, id]);
+
+  // 아이디를 치는 동안 쓸 수 있는지 확인
+  useEffect(() => {
+    if (!id) { setIdState('idle'); return; }
+    if (!ID_RE.test(id)) { setIdState('invalid'); return; }
+    setIdState('checking');
+    const ac = new AbortController();
+    const t = setTimeout(() => api.idCheck(id, ac.signal).then(r => setIdState(r.available ? 'ok' : 'taken')).catch(() => setIdState('idle')), 300);
+    return () => { clearTimeout(t); ac.abort(); };
+  }, [id]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validEmail(email.trim())) { setErr('이메일 주소를 확인해주세요.'); return; }
+    if (!ID_RE.test(id)) { setErr('아이디는 영소문자, 숫자, _ 로 4~16자예요.'); return; }
+    if (idState === 'taken') { setErr('이미 쓰고 있는 아이디예요.'); return; }
+    if (pw.length < 8) { setErr('비밀번호는 8자 이상이에요.'); return; }
+    setBusy(true); setErr('');
+    try {
+      await after(await signup(email.trim(), id, pw));
+    } catch (e2) {
+      if (e2 instanceof ApiError && e2.code === 'login_id_taken') setIdState('taken');
+      setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요');
+    } finally { setBusy(false); }
+  };
+  const hint = idState === 'ok' ? <p className="s-hint ok">쓸 수 있는 아이디예요.</p>
+    : idState === 'taken' ? <p className="s-hint err">이미 쓰고 있는 아이디예요.</p>
+      : idState === 'invalid' ? <p className="s-hint err">영소문자, 숫자, _ 로 4~16자예요.</p> : null;
+  return (
+    <Shell label="새 계정 만들기">
+      <form className="s-form" onSubmit={submit} noValidate>
+        <Head title="새 계정 만들기" note="기록이 매일 쌓이고 순위에도 올라가요." />
+        <Field id="semail" label="이메일" type="email" value={email} onChange={setEmail} placeholder="name@example.com" autoComplete="email" inputMode="email" />
+        <Field id="sid" label="아이디" type="text" value={loginId} onChange={setLoginId} placeholder="영소문자, 숫자, _ 4~16자" autoComplete="username" />
+        {hint}
+        {!id && suggestion ? (
+          <div className="s-suggest">추천 <button type="button" className="s-chip" onClick={() => setLoginId(suggestion)}>{suggestion}</button></div>
+        ) : null}
+        <Field id="spw" label="비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" />
+        <p className="s-err" role="alert">{err}</p>
+        <button type="submit" className="btn" disabled={busy}>가입하기</button>
+        <p className="s-switchLine">이미 계정이 있다면 <button type="button" className="s-inlineBtn" onClick={() => openSheet('login', reason)}>로그인</button></p>
+      </form>
+    </Shell>
+  );
+}
+
+function ResetSheet({ prefill }: { prefill?: string }) {
   const { openSheet } = useApp();
-  const [id, setId] = useState('');
+  const [email, setEmail] = useState(prefill ?? '');
   const [err, setErr] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const loginId = id.trim();
-    if (!/^[a-z0-9_]{4,16}$/.test(loginId)) { setErr('아이디는 영소문자, 숫자, _ 로 4~16자예요.'); return; }
+    if (!validEmail(email.trim())) { setErr('이메일 주소를 확인해주세요.'); return; }
     setBusy(true); setErr('');
-    try { setSentTo((await api.passwordReset(loginId)).email); } catch (e2) { setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요'); } finally { setBusy(false); }
+    try { setSentTo((await api.passwordReset(email.trim())).email); } catch (e2) { setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요'); } finally { setBusy(false); }
   };
   if (sentTo) {
     return (
-      <Shell label="비밀번호 찾기">
-        <div className="s-bell"><IconBell size={26} /></div>
-        <Head title="임시 비밀번호를 보냈어요" note={`${sentTo} 메일함을 확인해 주세요. 임시 비밀번호로 로그인하면 그게 새 비밀번호가 돼요.`} center />
-        <button type="button" className="btn" onClick={() => openSheet('login')}>로그인하러 가기</button>
+      <Shell label="임시 비밀번호를 보냈어요">
+        <div className="s-bell"><IconMail size={24} /></div>
+        <div className="s-sheetHead">
+          <h2 className="s-sheetH">임시 비밀번호를 보냈어요</h2>
+          <p className="s-note"><b>{sentTo}</b>로 보냈어요. 메일이 안 보이면 스팸함도 확인해주세요.</p>
+        </div>
+        <div className="s-infoBox">임시 비밀번호로 로그인하면 새 비밀번호를 정할 수 있어요.</div>
+        <button type="button" className="btn" onClick={() => openSheet('login', undefined, sentTo)}>로그인하기</button>
       </Shell>
     );
   }
   return (
     <Shell label="비밀번호 찾기">
       <form className="s-form" onSubmit={submit} noValidate>
-        <Head title="비밀번호 찾기" note="아이디를 입력하면 등록된 이메일로 임시 비밀번호를 보내드려요." />
-        <Field id="rid" label="아이디" type="text" value={id} onChange={setId} autoComplete="username" />
+        <div className="s-bell"><IconLock size={24} /></div>
+        <Head title="비밀번호 찾기" note="가입한 이메일을 입력하면 임시 비밀번호를 보내드려요." />
+        <Field id="remail" label="이메일" type="email" value={email} onChange={setEmail} placeholder="name@example.com" autoComplete="email" inputMode="email" />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn" disabled={busy}>임시 비밀번호 받기</button>
         <button type="button" className="s-textBtn" onClick={() => openSheet('login')}>로그인으로 돌아가기</button>
+      </form>
+    </Shell>
+  );
+}
+
+function NewPasswordSheet() {
+  const { closeSheet } = useApp();
+  const [pw, setPw] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pw.length < 8) { setErr('비밀번호는 8자 이상이에요.'); return; }
+    if (pw !== pw2) { setErr('두 비밀번호가 달라요.'); return; }
+    setBusy(true); setErr('');
+    try { await api.setPassword(pw); closeSheet(); } catch (e2) { setErr(e2 instanceof ApiError ? e2.message : '잠시 후 다시 시도해주세요'); } finally { setBusy(false); }
+  };
+  return (
+    <Shell label="새 비밀번호를 정해주세요">
+      <form className="s-form" onSubmit={submit} noValidate>
+        <Head title="새 비밀번호를 정해주세요" note="임시 비밀번호로 로그인했어요. 앞으로 쓸 비밀번호로 바꿔주세요." />
+        <Field id="npw" label="새 비밀번호" type="password" value={pw} onChange={setPw} placeholder="8자 이상" autoComplete="new-password" />
+        <Field id="npw2" label="한 번 더" type="password" value={pw2} onChange={setPw2} autoComplete="new-password" />
+        <p className="s-err" role="alert">{err}</p>
+        <button type="submit" className="btn" disabled={busy}>바꾸기</button>
       </form>
     </Shell>
   );
@@ -157,11 +280,10 @@ function EmailSheet() {
   return (
     <Shell label={has ? '이메일 수정' : '이메일 등록'}>
       <form className="s-form" onSubmit={save} noValidate>
-        <Head title={has ? '이메일' : '이메일 등록'} note="계정 찾기와 새 퍼즐 알림에 쓰는 메일이에요." />
+        <Head title={has ? '이메일' : '이메일 등록'} note="로그인, 비밀번호 찾기, 새 퍼즐 알림에 쓰는 메일이에요." />
         <Field id="email" label="이메일" type="email" value={v} onChange={setV} placeholder={has ? undefined : 'name@example.com'} autoComplete="email" />
         <p className="s-err" role="alert">{err}</p>
         <button type="submit" className="btn">{has ? '저장하기' : '등록하기'}</button>
-        {has ? <button type="button" className="s-textBtn" onClick={async () => { await updateMe({ email: null }).catch(() => {}); closeSheet(); }}>이메일 삭제</button> : null}
       </form>
     </Shell>
   );
@@ -274,8 +396,10 @@ export function Sheets() {
   const { sheet } = useApp();
   if (!sheet) return null;
   switch (sheet.kind) {
-    case 'login': return <LoginSheet key="login" reason={sheet.reason} />;
-    case 'reset': return <ResetSheet key="reset" />;
+    case 'login': return <LoginSheet key={`login${sheet.prefill ?? ''}`} reason={sheet.reason} prefill={sheet.prefill} />;
+    case 'signup': return <SignupSheet key="signup" reason={sheet.reason} />;
+    case 'reset': return <ResetSheet key="reset" prefill={sheet.prefill} />;
+    case 'newPassword': return <NewPasswordSheet key="newPassword" />;
     case 'notify': return <NotifySheet key="notify" />;
     case 'email': return <EmailSheet key="email" />;
     case 'popup': return <PopupSheet key="popup" />;

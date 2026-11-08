@@ -36,9 +36,15 @@ export async function solveByKeyboard(page: Page, opts: { stopAfter?: number } =
   return n;
 }
 
-/** 로그인 = 가입. 처음 보는 아이디면 그대로 계정이 만들어진다. */
-export async function signup(page: Page, loginId: string, password = 'password123') {
-  await login(page, loginId, password);
+/** 로그인 시트가 열린 상태에서 → 새 계정 만들기 */
+export async function signup(page: Page, loginId: string, password = 'password123', email = `${loginId}@example.com`) {
+  await page.getByRole('button', { name: '새 계정 만들기' }).click();
+  await page.locator('#semail').fill(email);
+  await page.locator('#sid').fill(loginId);
+  await expect(page.getByText('쓸 수 있는 아이디예요.')).toBeVisible();
+  await page.locator('#spw').fill(password);
+  await page.getByRole('button', { name: '가입하기' }).click();
+  await expect(page.locator('.s-sheet')).toHaveCount(0);
 }
 
 /** 로컬 가짜 SMTP(mail-catcher)가 server/.mail 에 저장한 메일 중 받는 사람이 같은 최신 것 */
@@ -52,11 +58,11 @@ export function lastMailTo(to: string) {
   return null;
 }
 
-export async function login(page: Page, loginId: string, password: string) {
-  await page.getByLabel('아이디').fill(loginId);
-  await page.getByLabel('비밀번호').fill(password);
+export async function login(page: Page, identifier: string, password: string, opts: { expectClosed?: boolean } = {}) {
+  await page.locator('#lid').fill(identifier);
+  await page.locator('#lpw').fill(password);
   await page.locator('.s-sheet').getByRole('button', { name: '로그인', exact: true }).click();
-  await expect(page.locator('.s-sheet')).toHaveCount(0);
+  if (opts.expectClosed !== false) await expect(page.locator('.s-sheet')).toHaveCount(0);
 }
 
 export const shot = (page: Page, name: string, full = true) =>

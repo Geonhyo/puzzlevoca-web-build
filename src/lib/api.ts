@@ -39,10 +39,14 @@ async function request<T>(path: string, init: { method?: string; body?: unknown;
 
 export const api = {
   me: () => request<Me>('/api/me'),
-  updateMe: (patch: Partial<{ email: string | null; notifyEnabled: boolean; avatar: number }>) => request<Me>('/api/me', { method: 'PATCH', body: patch }),
-  /** 로그인 = 회원가입 (처음 보는 아이디면 계정이 만들어짐) */
-  login: (loginId: string, password: string) => request<{ ok: true; created: boolean; usedTempPassword?: boolean }>('/api/auth/login', { method: 'POST', body: { loginId, password } }),
-  passwordReset: (loginId: string) => request<{ ok: true; email: string }>('/api/auth/password-reset', { method: 'POST', body: { loginId } }),
+  updateMe: (patch: Partial<{ email: string; notifyEnabled: boolean; avatar: number }>) => request<Me>('/api/me', { method: 'PATCH', body: patch }),
+  /** 이메일 또는 아이디로 로그인 */
+  login: (identifier: string, password: string) => request<{ ok: true; usedTempPassword: boolean }>('/api/auth/login', { method: 'POST', body: { identifier, password } }),
+  signup: (email: string, loginId: string, password: string) => request<{ ok: true }>('/api/auth/signup', { method: 'POST', body: { email, loginId, password } }),
+  idCheck: (loginId: string, signal?: AbortSignal) => request<{ valid: boolean; available: boolean }>(`/api/auth/id-check?loginId=${encodeURIComponent(loginId)}`, { signal }),
+  idSuggest: (email: string, signal?: AbortSignal) => request<{ suggestion: string | null }>(`/api/auth/id-suggest?email=${encodeURIComponent(email)}`, { signal }),
+  passwordReset: (email: string) => request<{ ok: true; email: string }>('/api/auth/password-reset', { method: 'POST', body: { email } }),
+  setPassword: (password: string) => request<{ ok: true }>('/api/auth/password', { method: 'POST', body: { password } }),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
   puzzle: () => request<PuzzleData>('/api/puzzles/today'),
   startPlay: (puzzleId: number) => request<{ token: string }>('/api/plays/start', { method: 'POST', body: { puzzleId } }),

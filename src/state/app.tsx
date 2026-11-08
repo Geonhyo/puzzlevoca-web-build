@@ -24,8 +24,8 @@ export interface Session {
   dir: Dir;
 }
 
-export type SheetKind = 'login' | 'reset' | 'notify' | 'email' | 'popup' | 'share' | 'help' | 'avatar';
-export interface SheetState { kind: SheetKind; reason?: string }
+export type SheetKind = 'login' | 'signup' | 'reset' | 'newPassword' | 'notify' | 'email' | 'popup' | 'share' | 'help' | 'avatar';
+export interface SheetState { kind: SheetKind; reason?: string; prefill?: string }
 
 export interface ResultView {
   summary: Summary;
@@ -45,14 +45,15 @@ interface Ctx {
   noPopup: boolean;
   sheet: SheetState | null;
   refreshMe: () => Promise<Me | null>;
-  authenticate: (loginId: string, password: string) => Promise<Me | null>;
+  authenticate: (identifier: string, password: string) => Promise<{ me: Me | null; usedTempPassword: boolean }>;
+  signup: (email: string, loginId: string, password: string) => Promise<Me | null>;
   logout: () => Promise<void>;
   updateMe: (patch: Parameters<typeof api.updateMe>[0]) => Promise<Me>;
   saveSession: (s: Session) => void;
   newSession: () => Session | null;
   finish: (s: Session) => Promise<void>;
   setNoPopup: (v: boolean) => void;
-  openSheet: (kind: SheetKind, reason?: string) => void;
+  openSheet: (kind: SheetKind, reason?: string, prefill?: string) => void;
   closeSheet: () => void;
 }
 
@@ -175,8 +176,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (me && session?.phase === 'done' && !session.submitted) submit(session, me);
   }, [me, session, submit]);
 
-  const authenticate = useCallback(async (loginId: string, password: string) => {
-    await api.login(loginId, password);
+  const authenticate = useCallback(async (identifier: string, password: string) => {
+    const r = await api.login(identifier, password);
+    return { me: await refreshMe(), usedTempPassword: r.usedTempPassword };
+  }, [refreshMe]);
+
+  const signup = useCallback(async (email: string, loginId: string, password: string) => {
+    await api.signup(email, loginId, password);
     return refreshMe();
   }, [refreshMe]);
 
@@ -211,9 +217,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: Ctx = {
     ready: meLoaded && puzzleLoaded,
     me, puzzle, board, puzzleError, session, result, played: !!result, noPopup, sheet,
-    refreshMe, authenticate, logout, updateMe, saveSession, newSession, finish,
+    refreshMe, authenticate, signup, logout, updateMe, saveSession, newSession, finish,
     setNoPopup: v => { setNoPopupState(v); store.set(PREF_NO_POPUP, v); },
-    openSheet: (kind, reason) => setSheet({ kind, reason }),
+    openSheet: (kind, reason, prefill) => setSheet({ kind, reason, prefill }),
     closeSheet: () => setSheet(null),
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

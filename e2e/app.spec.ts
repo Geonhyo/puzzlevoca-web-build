@@ -152,7 +152,6 @@ test('프로필: 캐릭터, 이메일, 알림, 로그아웃', async ({ page }, i
   await page.goto('/');
   await page.getByRole('button', { name: '로그인' }).first().click();
   await expect(page.getByRole('dialog', { name: '로그인' })).toBeVisible();
-  await shot(page, `${tag}-11-login`, false);
   await signup(page, id);
   await page.getByRole('link', { name: '프로필' }).first().click();
   await expect(page).toHaveURL(/\/profile$/);
@@ -165,11 +164,12 @@ test('프로필: 캐릭터, 이메일, 알림, 로그아웃', async ({ page }, i
   await expect(page.getByRole('button', { name: /곰칸/ })).toHaveClass(/on/);
   await page.getByRole('button', { name: '닫기' }).first().click();
 
-  // 메일 없이 알림을 켜면 메일 등록부터
-  await page.getByRole('switch').click();
-  await page.locator('#email').fill(`${id}@example.com`);
-  await page.locator('.s-sheet').getByRole('button', { name: '등록하기' }).click();
+  // 가입 때 넣은 메일 → 바꾸기, 알림 켜기
   await expect(page.locator('.s-val.gray')).toContainText(`${id}@example.com`);
+  await page.getByRole('button', { name: /^이메일/ }).click();
+  await page.locator('#email').fill(`new_${id}@example.com`);
+  await page.locator('.s-sheet').getByRole('button', { name: '저장하기' }).click();
+  await expect(page.locator('.s-val.gray')).toContainText(`new_${id}@example.com`);
   await page.getByRole('switch').click();
   await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
   await shot(page, `${tag}-12-profile`);
@@ -183,11 +183,9 @@ test('기존 계정 로그인: 연속 학습·티어가 보인다', async ({ pag
   const tag = info.project.name;
   await page.goto('/');
   await page.getByRole('button', { name: '로그인' }).first().click();
-  await page.getByLabel('아이디').fill('demo_user');
-  await page.getByLabel('비밀번호').fill('wrong-password');
-  await page.locator('.s-sheet').getByRole('button', { name: '로그인', exact: true }).click();
+  await login(page, 'demo_user', 'wrong-password', { expectClosed: false });
   await expect(page.locator('.s-err')).toHaveText('비밀번호가 맞지 않아요.');
-  await login(page, 'demo_user', 'puzzle1234');
+  await login(page, 'demo.user@example.com', 'puzzle1234'); // 이메일로도 로그인
   await expect(page.locator('.s-stTop')).toContainText('6일 연속');
   await expect(page.locator('.s-ava .s-tb').filter({ visible: true })).not.toHaveText('?');
   await shot(page, `${tag}-13-home-demo`);
@@ -206,47 +204,77 @@ test('도움말 시트', async ({ page }, info) => {
   await expect(sheet).toHaveCount(0);
 });
 
-test('비밀번호 찾기: 메일 없으면 안내, 있으면 임시 비밀번호로 로그인', async ({ page }, info) => {
+test('새 계정 만들기: 이메일로 아이디 추천, 아이디 중복 확인', async ({ page }, info) => {
+  const tag = info.project.name;
+  const n = Math.random().toString(36).slice(2, 6);
+  await page.goto('/');
+  await page.getByRole('button', { name: '로그인' }).first().click();
+  await page.getByRole('button', { name: '새 계정 만들기' }).click();
+  await page.locator('#semail').fill(`sora.kim${n}@gmail.com`);
+  const chip = page.locator('.s-chip');
+  await expect(chip).toHaveText(`sorakim${n}`);
+  await shot(page, `${tag}-18-signup-suggest`, false);
+  await chip.click();
+  await expect(page.locator('#sid')).toHaveValue(`sorakim${n}`);
+  await expect(page.getByText('쓸 수 있는 아이디예요.')).toBeVisible();
+  await page.locator('#sid').fill('demo_user');
+  await expect(page.getByText('이미 쓰고 있는 아이디예요.')).toBeVisible();
+  await page.locator('#spw').fill('password123');
+  await page.getByRole('button', { name: '비밀번호 보기' }).click();
+  await expect(page.locator('#spw')).toHaveAttribute('type', 'text');
+  await shot(page, `${tag}-19-signup-taken`, false);
+  await page.getByRole('button', { name: '가입하기' }).click();
+  await expect(page.locator('.s-err')).toHaveText('이미 쓰고 있는 아이디예요.');
+  await page.locator('#sid').fill(`sorakim${n}`);
+  await expect(page.getByText('쓸 수 있는 아이디예요.')).toBeVisible();
+  await page.getByRole('button', { name: '가입하기' }).click();
+  await expect(page.locator('.s-sheet')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '프로필' }).filter({ visible: true })).toBeVisible();
+});
+
+test('비밀번호 찾기: 이메일 → 임시 비밀번호 로그인 → 새 비밀번호', async ({ page }, info) => {
   const tag = info.project.name;
   const id = uid('pw');
   const email = `${id}@example.com`;
-  // 메일 없는 계정
   await page.goto('/');
   await page.getByRole('button', { name: '로그인' }).first().click();
-  await signup(page, id, 'original-pass');
+  await shot(page, `${tag}-11-login`, false);
+  await signup(page, id, 'original-pass', email);
   await page.goto('/profile');
   await page.getByRole('button', { name: '로그아웃' }).click();
-  await page.getByRole('button', { name: '로그인' }).first().click();
-  await page.getByRole('button', { name: '비밀번호를 잊었어요' }).click();
-  await page.locator('#rid').fill(id);
-  await page.getByRole('button', { name: '임시 비밀번호 받기' }).click();
-  await expect(page.locator('.s-err')).toHaveText('등록된 이메일이 없어서 비밀번호를 찾을 수 없어요.');
-  await page.locator('#rid').fill('nobody_zz9');
-  await page.getByRole('button', { name: '임시 비밀번호 받기' }).click();
-  await expect(page.locator('.s-err')).toHaveText('없는 아이디예요.');
-  await page.keyboard.press('Escape');
 
-  // 메일 등록 후 찾기
-  await page.getByRole('button', { name: '로그인' }).first().click();
-  await login(page, id, 'original-pass');
-  await page.goto('/profile');
-  await page.getByRole('button', { name: /이메일/ }).first().click();
-  await page.locator('#email').fill(email);
-  await page.locator('.s-sheet').getByRole('button', { name: '등록하기' }).click();
-  await page.getByRole('button', { name: '로그아웃' }).click();
   await page.getByRole('button', { name: '로그인' }).first().click();
   await page.getByRole('button', { name: '비밀번호를 잊었어요' }).click();
-  await page.locator('#rid').fill(id);
-  await shot(page, `${tag}-16-reset`, false);
+  await page.locator('#remail').fill('nobody_zz9@example.com');
   await page.getByRole('button', { name: '임시 비밀번호 받기' }).click();
-  await expect(page.getByRole('dialog', { name: '비밀번호 찾기' })).toContainText('임시 비밀번호를 보냈어요');
-  await expect(page.getByRole('dialog', { name: '비밀번호 찾기' })).toContainText(`${id.slice(0, 2)}`);
+  await expect(page.locator('.s-err')).toHaveText('가입된 이메일이 아니에요. 다시 확인해주세요.');
+  await shot(page, `${tag}-16-reset-error`, false);
+  await page.locator('#remail').fill(email);
+  await page.getByRole('button', { name: '임시 비밀번호 받기' }).click();
+  const sent = page.getByRole('dialog', { name: '임시 비밀번호를 보냈어요' });
+  await expect(sent).toContainText(`${email}로 보냈어요`);
   await shot(page, `${tag}-17-reset-sent`, false);
 
   const mail = lastMailTo(email)!;
-  expect(mail.subject).toBe('퍼즐보카 임시 비밀번호');
-  const temp = mail.text.match(/임시 비밀번호: (\S+)/)![1];
-  await page.getByRole('button', { name: '로그인하러 가기' }).click();
-  await login(page, id, temp);
+  expect(mail.subject).toBe('[퍼즐보카] 임시 비밀번호를 보내드려요');
+  const temp = mail.text.match(/임시 비밀번호예요: (\S+)/)![1];
+  await sent.getByRole('button', { name: '로그인하기' }).click();
+  await expect(page.locator('#lid')).toHaveValue(email);
+  await login(page, email, temp, { expectClosed: false });
+  const np = page.getByRole('dialog', { name: '새 비밀번호를 정해주세요' });
+  await expect(np).toBeVisible();
+  await shot(page, `${tag}-20-new-password`, false);
+  await page.locator('#npw').fill('brand-new-pass');
+  await page.locator('#npw2').fill('different-pass');
+  await np.getByRole('button', { name: '바꾸기' }).click();
+  await expect(page.locator('.s-err')).toHaveText('두 비밀번호가 달라요.');
+  await page.locator('#npw2').fill('brand-new-pass');
+  await np.getByRole('button', { name: '바꾸기' }).click();
+  await expect(page.locator('.s-sheet')).toHaveCount(0);
+
+  await page.goto('/profile');
+  await page.getByRole('button', { name: '로그아웃' }).click();
+  await page.getByRole('button', { name: '로그인' }).first().click();
+  await login(page, id, 'brand-new-pass');
   await expect(page.getByRole('link', { name: '프로필' }).filter({ visible: true })).toBeVisible();
 });

@@ -39,7 +39,7 @@ export function ProfileView() {
         <div className="s-col" style={{ paddingTop: 2 }}>
           <section className="s-card s-settings">
             <button type="button" className="s-set" onClick={() => openSheet('email')}>
-              <span>이메일<small>계정 찾기, 알림에 사용돼요</small></span>
+              <span>이메일<small>로그인, 비밀번호 찾기, 알림에 사용돼요</small></span>
               {me.user.email ? <span className="s-val gray">{me.user.email}<IconChev /></span> : <span className="s-val">등록하기<IconChev /></span>}
             </button>
             <button type="button" className="s-set" role="switch" aria-checked={me.user.notifyEnabled} onClick={toggleNotify}>
