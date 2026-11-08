@@ -1,0 +1,148 @@
+/*
+ * 퍼즐보카 디자인 토큰 (목업 기준).
+ * 화면의 모든 색·모서리·그림자·글꼴·움직임 값은 여기서만 정의하고, 나머지 CSS/캔버스는 이 변수만 쓴다.
+ * 캔버스(결과 카드)는 src/lib/tokens.ts 의 cssVar() 로 같은 값을 읽는다.
+ *
+ * 디자인 방향: 부드러운 회색 바탕 + 납작한 흰 카드, "선택됨"은 검정(ink) 하나로만 표시.
+ * 금빛 칸은 점수 배수, 파랑(brand)은 진행/강조.
+ */
+:root {
+  color-scheme: light;
+
+  /* ─── 기본 팔레트 ─── */
+  --color-bg: #f4f3f7;              /* 페이지 바탕 */
+  --color-card: #ffffff;            /* 카드, 키 */
+  --color-ink: #16161d;             /* 본문, 선택 상태, 기본 버튼 */
+  --color-ink-2: #6e6c78;           /* 보조 글자 */
+  --color-ink-3: #a4a1ae;           /* 흐린 글자, 비활성 키 */
+  --color-line: #dddbe3;            /* 외곽선 버튼, 입력창 테두리 */
+  --color-divider: #efedf3;         /* 카드 안 구분선 */
+  --color-cell: #efedf3;            /* 빈 칸 */
+  --color-surface-muted: #e8e6ee;   /* 세그먼트/눌림 바탕 */
+  --color-border-soft: #e3e1e8;     /* 상단 바 경계, 키 그림자 */
+  --color-pressed: #e4e1ec;         /* 키 눌림 애니메이션 */
+  --color-grab: #cfccd8;            /* 시트 손잡이 (게임) */
+  --color-grab-site: #dddbe3;       /* 시트 손잡이 (사이트) */
+  --color-track: #e2dfe9;           /* 진행 막대 바탕 */
+
+  /* ─── 브랜드 (파랑) ─── */
+  --color-brand: #2b4bd9;           /* 진행, 강조 버튼, 체크 */
+  --color-brand-strong: #1f3bb8;    /* 브랜드 글자, 선택 칸 테두리 */
+  --color-brand-soft: #e8edff;      /* 현재 단어 칸, 내 순위 행, 밴드 */
+  --color-brand-tint: #cfd8ff;      /* 선택한 칸 */
+  --color-brand-wash: #eef1ff;      /* 가로/세로 태그 */
+  --color-brand-pale: #dde4ff;      /* 로고 칸 */
+  --color-brand-ink: #15204f;       /* 라벤더 카드 위 글자 */
+  --color-lav: #9fb0f5;
+  --color-lav-soft: #dfe5ff;
+
+  /* ─── 점수 배수(금빛) / 상태 ─── */
+  --color-gold-cell: #ffe9b0;       /* ×2 ×3 칸 */
+  --color-gold-ink: #a26b00;        /* ×2 ×3 글자 */
+  --color-apri: #ffc36b;
+  --color-apri-soft: #ffd79e;       /* 가로 완성, 미스 태그 */
+  --color-mint-soft: #cdeedd;       /* 세로 완성, 조커 칸 */
+  --color-danger: #e5484d;          /* 미스, 감점, 유료 조커 */
+  --color-success: #1a9b5f;         /* LP 상승 */
+
+  /* ─── 티어 ─── */
+  --color-tier-bronze: #b0754a;
+  --color-tier-silver: #8a94a3;
+  --color-tier-gold: #e0a000;
+  --color-tier-platinum: #14b8a6;
+  --color-tier-diamond: #8b5cf6;
+  --color-tier-master: #e0457b;
+  --color-tier-none: #c4c1cc;
+  /* 큰 글자로 쓸 때 (대비를 높인 버전) */
+  --color-tier-bronze-text: #a0643c;
+  --color-tier-silver-text: #6f7b8c;
+  --color-tier-gold-text: #b07d00;
+  --color-tier-platinum-text: #0f9488;
+  --color-tier-diamond-text: #7c4ddb;
+  --color-tier-master-text: #d6336c;
+  /* 랭킹 1·2·3등 숫자 */
+  --color-medal-1: #e0a000;
+  --color-medal-2: #8e8e98;
+  --color-medal-3: #b07a4e;
+
+  /* ─── 결과 공유 카드 (1080×1350 캔버스) ─── */
+  --color-share-bg: #2b4bd9;
+  --color-share-head: #ffffff;
+  --color-share-sub: rgba(255, 255, 255, 0.72);
+  --color-share-pill: rgba(255, 255, 255, 0.16);
+  --color-share-ring: rgba(255, 255, 255, 0.07);
+  --color-share-combo: #2b4bd9;
+  --color-share-miss: #ff6b57;
+  --color-share-joker: #b6e33a;
+
+  /* ─── 덮개 ─── */
+  --color-scrim: rgba(22, 22, 29, 0.4);
+  --color-scrim-site: rgba(22, 22, 29, 0.42);
+  --color-pause-solid: rgba(244, 243, 247, 0.9);
+  --color-pause-blur: rgba(244, 243, 247, 0.35);
+  --color-on-dark: #ffffff;
+
+  /* ─── 글꼴 ─── (next/font 가 --font-urbanist, --font-noto-kr 를 채운다) */
+  --font: var(--font-urbanist), var(--font-noto-kr), system-ui, sans-serif;     /* 숫자·영문 우선 */
+  --font-ko: var(--font-noto-kr), var(--font-urbanist), system-ui, sans-serif;  /* 한글 우선 */
+  --font-mono: ui-monospace, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 800;
+
+  /* ─── 모서리 ─── */
+  --radius-2xs: 5px;
+  --radius-xs: 9px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 18px;
+  --radius-3xl: 20px;
+  --radius-card: 22px;
+  --radius-panel: 24px;
+  --radius-modal: 28px;
+  --radius-sheet: 30px;
+  --radius-pill: 999px;
+
+  /* ─── 그림자 ─── */
+  --shadow-key: 0 1px 0 var(--color-border-soft);
+  --shadow-key-brand: 0 1px 0 var(--color-brand-strong);
+  --shadow-pop: 0 18px 50px rgba(22, 22, 29, 0.18);
+  --shadow-modal: 0 24px 64px rgba(22, 22, 29, 0.22);
+  --shadow-image: 0 10px 30px rgba(22, 22, 29, 0.14);
+  --shadow-word: 0 6px 18px rgba(22, 22, 29, 0.14);
+
+  /* ─── 간격 ─── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --gutter: 16px;                   /* 모바일 좌우 여백 */
+
+  /* ─── 레이아웃 ─── */
+  --site-max: 1440px;
+  --site-narrow: 632px;
+  --site-one: 832px;
+  --app-max: 1160px;
+  --bp-tablet: 600px;               /* 참고용 (미디어쿼리는 상수로 씀) */
+  --bp-desktop: 1080px;
+
+  /* ─── 움직임 ─── */
+  --ease-spring: cubic-bezier(0.2, 1, 0.3, 1);
+  --ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --dur-fast: 0.12s;
+  --dur-base: 0.15s;
+
+  /* ─── 쌓임 순서 ─── */
+  --z-sticky: 4;
+  --z-float: 5;
+  --z-band: 6;
+  --z-overlay: 20;
+  --z-rules: 30;
+  --z-sheet: 50;
+}
